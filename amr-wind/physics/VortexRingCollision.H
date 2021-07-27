@@ -41,6 +41,11 @@ private:
     amrex::Real m_Gamma{1.0};
     amrex::Real m_delta{0.2};
     amrex::Real m_dz{1.2};
+	amrex::Vector<int> m_perturbation_modes;
+	amrex::Vector<double> m_perturbation_phases_1;
+	amrex::Vector<double> m_perturbation_phases_2;
+	// amplitude relative to the unperturbed vortex ring diameter
+    amrex::Real m_perturbation_amplitude{1e-4};
 };
 
 struct VorticityTheta
@@ -51,6 +56,15 @@ struct VorticityTheta
         const amrex::Real,
         const amrex::Real,
         const amrex::Real) const;
+    const int m_comp{1};
+};
+
+struct Perturbation
+{
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
+        const amrex::Real,
+        const amrex::Vector<int>,
+        const amrex::Vector<double>) const;
     const int m_comp{1};
 };
 

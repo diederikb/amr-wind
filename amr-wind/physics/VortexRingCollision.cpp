@@ -18,6 +18,18 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real VorticityTheta::operator()(
     return Gamma / (utils::pi() * std::pow(delta, 2)) * std::exp(- (std::pow(z, 2) + std::pow((r - R), 2)) / std::pow(delta, 2));
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real Perturbation::operator()(
+    const amrex::Real theta,
+    const amrex::Vector<int> modes,
+    const amrex::Vector<double> phases) const
+{
+	amrex::Real p = 0.0;
+    for (int i = 0; i < modes.size(); ++i){
+		p += std::cos(modes[i] * theta - phases[i]);
+    }
+	return p;
+}
+
 VortexRingCollision::VortexRingCollision(const CFDSim& sim)
     : m_repo(sim.repo())
 	, m_velocity(sim.repo().get_field("velocity"))
@@ -34,7 +46,14 @@ VortexRingCollision::VortexRingCollision(const CFDSim& sim)
     	pp.query("Gamma", m_Gamma);
     	pp.query("delta", m_delta);
     	pp.query("dz", m_dz);
+    	pp.query("perturbation_amplitude", m_perturbation_amplitude);
+		pp.queryarr("perturbation_modes", m_perturbation_modes);
 	}
+
+    for (int i = 0; i < m_perturbation_modes.size(); ++i){
+        m_perturbation_phases_1.push_back(amrex::Random() * 2 * utils::pi());	
+        m_perturbation_phases_2.push_back(amrex::Random() * 2 * utils::pi());	
+	}	
 
 	sim.repo().declare_nd_field("vorticity", 3, 1, 1);    
 	sim.repo().declare_nd_field("vectorpotential", 3, 1, 1);    
@@ -54,6 +73,7 @@ void VortexRingCollision::initialize_fields(
     auto& vectorpotential = m_repo.get_field("vectorpotential");
 
 	VorticityTheta vorticity_theta;
+	Perturbation perturbation_r;
 
     density.setVal(m_rho);
 
@@ -62,6 +82,7 @@ void VortexRingCollision::initialize_fields(
     const amrex::Real Lx = probhi[0] - problo[0];
     const amrex::Real Ly = probhi[1] - problo[1];
     const amrex::Real Lz = probhi[2] - problo[2];
+
 
     for (amrex::MFIter mfi(velocity); mfi.isValid(); ++mfi) {
         const auto& dx = geom.CellSizeArray();
@@ -73,10 +94,12 @@ void VortexRingCollision::initialize_fields(
                 const amrex::Real x = problo[0] + i * dx[0];
                 const amrex::Real y = problo[1] + j * dx[1];
                 const amrex::Real z = problo[2] + k * dx[2];
-                const amrex::Real r = std::sqrt(std::pow(x, 2) + std::pow(y, 2));
                 const amrex::Real theta = std::atan2(y, x);
-                vort(i, j, k, 0) = -std::sin(theta) * (vorticity_theta(r, z + 0.5 * m_dz, m_R, m_Gamma, m_delta) + vorticity_theta(r, z - 0.5 * m_dz, m_R, -m_Gamma, m_delta));
-                vort(i, j, k, 1) = std::cos(theta) * (vorticity_theta(r, z + 0.5 * m_dz, m_R, m_Gamma, m_delta) + vorticity_theta(r, z - 0.5 * m_dz, m_R, -m_Gamma, m_delta));
+                const amrex::Real r = std::sqrt(std::pow(x, 2) + std::pow(y, 2));
+                const amrex::Real dr1 = m_perturbation_amplitude * perturbation_r(theta, m_perturbation_modes, m_perturbation_phases_1);
+                const amrex::Real dr2 = m_perturbation_amplitude * perturbation_r(theta, m_perturbation_modes, m_perturbation_phases_2);
+                vort(i, j, k, 0) = -std::sin(theta) * (vorticity_theta(r * (1 + dr1), z + 0.5 * m_dz, m_R, m_Gamma, m_delta) + vorticity_theta(r * (1 + dr2), z - 0.5 * m_dz, m_R, -m_Gamma, m_delta));
+                vort(i, j, k, 1) = std::cos(theta) * (vorticity_theta(r * (1 + dr1), z + 0.5 * m_dz, m_R, m_Gamma, m_delta) + vorticity_theta(r * (1 + dr2), z - 0.5 * m_dz, m_R, -m_Gamma, m_delta));
                 vort(i, j, k, 2) = 0.0;
             });
     }
