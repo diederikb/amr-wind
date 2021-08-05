@@ -48,12 +48,9 @@ VortexRingCollision::VortexRingCollision(const CFDSim& sim)
     	pp.query("dz", m_dz);
     	pp.query("perturbation_amplitude", m_perturbation_amplitude);
 		pp.queryarr("perturbation_modes", m_perturbation_modes);
+		pp.queryarr("perturbation_phases_1", m_perturbation_phases_1);
+		pp.queryarr("perturbation_phases_2", m_perturbation_phases_2);
 	}
-
-    for (int i = 0; i < m_perturbation_modes.size(); ++i){
-        m_perturbation_phases_1.push_back(amrex::Random() * 2 * utils::pi());	
-        m_perturbation_phases_2.push_back(amrex::Random() * 2 * utils::pi());	
-	}	
 
 	sim.repo().declare_nd_field("vorticity", 3, 1, 1);    
 	sim.repo().declare_nd_field("vectorpotential", 3, 1, 1);    
@@ -82,7 +79,6 @@ void VortexRingCollision::initialize_fields(
     const amrex::Real Lx = probhi[0] - problo[0];
     const amrex::Real Ly = probhi[1] - problo[1];
     const amrex::Real Lz = probhi[2] - problo[2];
-
 
     for (amrex::MFIter mfi(velocity); mfi.isValid(); ++mfi) {
         const auto& dx = geom.CellSizeArray();
