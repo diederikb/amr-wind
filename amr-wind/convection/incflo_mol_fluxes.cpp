@@ -142,7 +142,7 @@ void mol::compute_convective_fluxes(
                     (d_bcrec[n].hi(2) == BCType::ext_dir)) {
                     qs = q(i, j, domain_khi + 1, n);
                 } else {
-                    qs = qs = c1 * (q(i, j, k - 1, n) + q(i, j, k, n)) +
+                    qs = c1 * (q(i, j, k - 1, n) + q(i, j, k, n)) +
                               c2 * (q(i, j, k - 2, n) + q(i, j, k + 1, n));
                 }
                 fz(i, j, k, n) = qs * wmac(i, j, k);
