@@ -81,6 +81,18 @@ struct GpzExact
     const int m_comp{2};
 };
 
+struct VorticityExact
+{
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
+        const amrex::Real /*u0*/,
+        const amrex::Real /*v0*/,
+        const amrex::Real /*omega*/,
+        const amrex::Real /*x*/,
+        const amrex::Real /*y*/,
+        const amrex::Real /*t*/) const;
+    const int m_comp{2};
+};
+
 } // namespace
 
 /** Convecting Taylor Vortex physics
@@ -123,6 +135,7 @@ private:
     Field& m_velocity;
     Field& m_gradp;
     Field& m_density;
+    Field& m_vorticity;
 
     void output_error();
 

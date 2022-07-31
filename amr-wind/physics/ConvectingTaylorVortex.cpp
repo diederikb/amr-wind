@@ -85,6 +85,19 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpzExact::operator()(
     return 0.0;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real VorticityExact::operator()(
+    const amrex::Real u0,
+    const amrex::Real v0,
+    const amrex::Real omega,
+    const amrex::Real x,
+    const amrex::Real y,
+    const amrex::Real t) const
+{
+    return - 2.0 * utils::pi() * utils::pi() * std::cos(utils::pi() * (x - u0 * t)) *
+                    std::cos(utils::pi() * (y - v0 * t)) *
+                    std::exp(-2.0 * omega * t);
+}
+
 } // namespace
 
 ConvectingTaylorVortex::ConvectingTaylorVortex(const CFDSim& sim)
@@ -95,6 +108,7 @@ ConvectingTaylorVortex::ConvectingTaylorVortex(const CFDSim& sim)
     , m_velocity(sim.repo().get_field("velocity"))
     , m_gradp(sim.repo().get_field("gp"))
     , m_density(sim.repo().get_field("density"))
+    , m_vorticity(sim.repo().declare_field("vorticity"))
     , m_mesh_mapping(sim.has_mesh_mapping())
 {
     {
