@@ -4,6 +4,7 @@
 #include "amr-wind/core/Physics.H"
 #include "amr-wind/core/Field.H"
 #include "amr-wind/CFDSim.H"
+#include "amr-wind/utilities/trig_ops.H"
 
 namespace amr_wind {
 namespace ctv {
@@ -14,7 +15,10 @@ struct UExact
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
         const amrex::Real /*u0*/,
         const amrex::Real /*v0*/,
-        const amrex::Real /*omega*/,
+        const amrex::Real /*alpha*/,
+        const amrex::Real /*beta*/,
+        const amrex::Real /*A*/,
+        const amrex::Real /*nu*/,
         const amrex::Real /*x*/,
         const amrex::Real /*y*/,
         const amrex::Real /*t*/) const;
@@ -26,7 +30,10 @@ struct VExact
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
         const amrex::Real /*u0*/,
         const amrex::Real /*v0*/,
-        const amrex::Real /*omega*/,
+        const amrex::Real /*alpha*/,
+        const amrex::Real /*beta*/,
+        const amrex::Real /*A*/,
+        const amrex::Real /*nu*/,
         const amrex::Real /*x*/,
         const amrex::Real /*y*/,
         const amrex::Real /*t*/) const;
@@ -41,6 +48,9 @@ struct WExact
         const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
+        const amrex::Real /*unused*/,
+        const amrex::Real /*unused*/,
+        const amrex::Real /*unused*/,
         const amrex::Real /*unused*/) const;
     const int m_comp{2};
 };
@@ -50,7 +60,10 @@ struct GpxExact
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
         const amrex::Real /*u0*/,
         const amrex::Real /*unused*/,
-        const amrex::Real /*omega*/,
+        const amrex::Real /*alpha*/,
+        const amrex::Real /*beta*/,
+        const amrex::Real /*A*/,
+        const amrex::Real /*nu*/,
         const amrex::Real /*x*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*t*/) const;
@@ -62,7 +75,10 @@ struct GpyExact
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
         const amrex::Real /*unused*/,
         const amrex::Real /*v0*/,
-        const amrex::Real /*omega*/,
+        const amrex::Real /*alpha*/,
+        const amrex::Real /*beta*/,
+        const amrex::Real /*A*/,
+        const amrex::Real /*nu*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*y*/,
         const amrex::Real /*t*/) const;
@@ -72,6 +88,9 @@ struct GpyExact
 struct GpzExact
 {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
+        const amrex::Real /*unused*/,
+        const amrex::Real /*unused*/,
+        const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
@@ -112,7 +131,7 @@ public:
 
     amrex::Real get_v0() const { return m_v0; }
 
-    amrex::Real get_omega() const { return m_omega; }
+    amrex::Real get_nu() const { return m_nu; }
 
 private:
     const amr_wind::SimTime& m_time;
@@ -135,8 +154,17 @@ private:
     //! mean y-velocity value
     amrex::Real m_v0{1.0};
 
-    //! damping
-    amrex::Real m_omega;
+    //! x-direction wave number
+    amrex::Real m_alpha{utils::pi()};
+
+    //! y-direction wave number
+    amrex::Real m_beta{utils::pi()};
+
+    //! amplitude
+    amrex::Real m_A{1.0/utils::pi()};
+
+    //! viscosity
+    amrex::Real m_nu;
 
     //! output precision
     const int m_w{18};
