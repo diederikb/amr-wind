@@ -121,6 +121,7 @@ ConvectingTaylorVortex::ConvectingTaylorVortex(const CFDSim& sim)
         pp.query("v0", m_v0);
         pp.query("alpha", m_alpha);
         pp.query("beta", m_beta);
+        pp.query("A", m_A);
         pp.query("activate_pressure", m_activate_pressure);
         pp.query("error_log_file", m_output_fname);
     }
