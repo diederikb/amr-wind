@@ -10,7 +10,7 @@ namespace amr_wind {
 namespace ctv {
 
 namespace {
-struct UExact
+struct UExactFV
 {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
         const amrex::Real /*u0*/,
@@ -19,13 +19,15 @@ struct UExact
         const amrex::Real /*beta*/,
         const amrex::Real /*A*/,
         const amrex::Real /*nu*/,
+        const amrex::Real /*dx*/,
+        const amrex::Real /*dy*/,
         const amrex::Real /*x*/,
         const amrex::Real /*y*/,
         const amrex::Real /*t*/) const;
     const int m_comp{0};
 };
 
-struct VExact
+struct VExactFV
 {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
         const amrex::Real /*u0*/,
@@ -34,15 +36,19 @@ struct VExact
         const amrex::Real /*beta*/,
         const amrex::Real /*A*/,
         const amrex::Real /*nu*/,
+        const amrex::Real /*dx*/,
+        const amrex::Real /*dy*/,
         const amrex::Real /*x*/,
         const amrex::Real /*y*/,
         const amrex::Real /*t*/) const;
     const int m_comp{1};
 };
 
-struct WExact
+struct WExactFV
 {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
+        const amrex::Real /*unused*/,
+        const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
@@ -55,7 +61,7 @@ struct WExact
     const int m_comp{2};
 };
 
-struct GpxExact
+struct GpxExactFV
 {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
         const amrex::Real /*u0*/,
@@ -64,13 +70,15 @@ struct GpxExact
         const amrex::Real /*beta*/,
         const amrex::Real /*A*/,
         const amrex::Real /*nu*/,
+        const amrex::Real /*dx*/,
+        const amrex::Real /*dy*/,
         const amrex::Real /*x*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*t*/) const;
     const int m_comp{0};
 };
 
-struct GpyExact
+struct GpyExactFV
 {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
         const amrex::Real /*unused*/,
@@ -79,15 +87,19 @@ struct GpyExact
         const amrex::Real /*beta*/,
         const amrex::Real /*A*/,
         const amrex::Real /*nu*/,
+        const amrex::Real /*dx*/,
+        const amrex::Real /*dy*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*y*/,
         const amrex::Real /*t*/) const;
     const int m_comp{1};
 };
 
-struct GpzExact
+struct GpzExactFV
 {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real operator()(
+        const amrex::Real /*unused*/,
+        const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
         const amrex::Real /*unused*/,
