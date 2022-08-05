@@ -10,39 +10,56 @@ namespace ctv {
 
 namespace {
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real UExact::operator()(
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real UExactFV::operator()(
     const amrex::Real u0,
     const amrex::Real v0,
     const amrex::Real alpha,
     const amrex::Real beta,
     const amrex::Real A,
     const amrex::Real nu,
+    const amrex::Real dx,
+    const amrex::Real dy,
     const amrex::Real x,
     const amrex::Real y,
     const amrex::Real t) const
-{
-    return u0 - A * beta * std::cos(alpha * (x - u0 * t)) *
-                    std::sin(beta * (y - v0 * t)) *
-                    std::exp(-(alpha * alpha + beta * beta) * nu * t);
+{   
+    const amrex::Real x_L = x - 0.5 * dx;
+    const amrex::Real x_R = x + 0.5 * dx;
+    const amrex::Real y_B = y - 0.5 * dy;
+    const amrex::Real y_T = y + 0.5 * dy;
+    return u0 + A / alpha * ((std::sin(alpha * (x_R - u0 * t)) - std::sin(alpha * (x_L - u0 * t))) * (std::cos(beta * (y_T - v0 * t)) - std::cos(beta * (y_B - v0 * t)))) * std::exp(-(alpha * alpha + beta * beta) * nu * t) / (dx * dy) ;
+
+    //return u0 - A * beta * std::cos(alpha * (x - u0 * t)) *
+    //                std::sin(beta * (y - v0 * t)) *
+    //                std::exp(-(alpha * alpha + beta * beta) * nu * t);
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real VExact::operator()(
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real VExactFV::operator()(
     const amrex::Real u0,
     const amrex::Real v0,
     const amrex::Real alpha,
     const amrex::Real beta,
     const amrex::Real A,
     const amrex::Real nu,
+    const amrex::Real dx,
+    const amrex::Real dy,
     const amrex::Real x,
     const amrex::Real y,
     const amrex::Real t) const
 {
-    return v0 + A * alpha * std::sin(alpha * (x - u0 * t)) *
-                    std::cos(beta * (y - v0 * t)) *
-                    std::exp(-(alpha * alpha + beta * beta) * nu * t);
+    const amrex::Real x_L = x - 0.5 * dx;
+    const amrex::Real x_R = x + 0.5 * dx;
+    const amrex::Real y_B = y - 0.5 * dy;
+    const amrex::Real y_T = y + 0.5 * dy;
+    return v0 - A / beta * ((std::cos(alpha * (x_R - u0 * t)) - std::cos(alpha * (x_L - u0 * t))) * (std::sin(beta * (y_T - v0 * t)) - std::sin(beta * (y_B - v0 * t)))) * std::exp(-(alpha * alpha + beta * beta) * nu * t) / (dx * dy) ;
+    //return v0 + A * alpha * std::sin(alpha * (x - u0 * t)) *
+    //                std::cos(beta * (y - v0 * t)) *
+    //                std::exp(-(alpha * alpha + beta * beta) * nu * t);
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real WExact::operator()(
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real WExactFV::operator()(
+    const amrex::Real /*unused*/,
+    const amrex::Real /*unused*/,
     const amrex::Real /*unused*/,
     const amrex::Real /*unused*/,
     const amrex::Real /*unused*/,
@@ -56,13 +73,15 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real WExact::operator()(
     return 0.0;
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpxExact::operator()(
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpxExactFV::operator()(
     const amrex::Real u0,
     const amrex::Real /*unused*/,
     const amrex::Real alpha,
     const amrex::Real beta,
     const amrex::Real A,
     const amrex::Real nu,
+    const amrex::Real dx,
+    const amrex::Real dy,
     const amrex::Real x,
     const amrex::Real /*unused*/,
     const amrex::Real t) const
@@ -72,13 +91,15 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpxExact::operator()(
            std::exp(-2.0 * (alpha * alpha + beta * beta) * nu * t);
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpyExact::operator()(
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpyExactFV::operator()(
     const amrex::Real /*unused*/,
     const amrex::Real v0,
     const amrex::Real alpha,
     const amrex::Real beta,
     const amrex::Real A,
     const amrex::Real nu,
+    const amrex::Real dx,
+    const amrex::Real dy,
     const amrex::Real /*unused*/,
     const amrex::Real y,
     const amrex::Real t) const
@@ -88,7 +109,9 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpyExact::operator()(
            std::exp(-2.0 * (alpha * alpha + beta * beta) * nu * t);
 }
 
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpzExact::operator()(
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE amrex::Real GpzExactFV::operator()(
+    const amrex::Real /*unused*/,
+    const amrex::Real /*unused*/,
     const amrex::Real /*unused*/,
     const amrex::Real /*unused*/,
     const amrex::Real /*unused*/,
@@ -171,12 +194,12 @@ void ConvectingTaylorVortex::initialize_fields(
 
     density.setVal(m_rho);
 
-    UExact u_exact;
-    VExact v_exact;
-    WExact w_exact;
-    GpxExact gpx_exact;
-    GpyExact gpy_exact;
-    GpzExact gpz_exact;
+    UExactFV u_exact;
+    VExactFV v_exact;
+    WExactFV w_exact;
+    GpxExactFV gpx_exact;
+    GpyExactFV gpy_exact;
+    GpzExactFV gpz_exact;
 
     for (amrex::MFIter mfi(velocity); mfi.isValid(); ++mfi) {
         const auto& vbx = mfi.validbox();
@@ -194,14 +217,14 @@ void ConvectingTaylorVortex::initialize_fields(
                 amrex::Real y = mesh_mapping ? (nu_cc(i, j, k, 1))
                                              : (prob_lo[1] + (j + 0.5) * dx[1]);
 
-                vel(i, j, k, 0) = u_exact(u0, v0, alpha, beta, A, nu, x, y, 0.0);
-                vel(i, j, k, 1) = v_exact(u0, v0, alpha, beta, A, nu, x, y, 0.0);
-                vel(i, j, k, 2) = w_exact(u0, v0, alpha, beta, A, nu, x, y, 0.0);
+                vel(i, j, k, 0) = u_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, 0.0);
+                vel(i, j, k, 1) = v_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, 0.0);
+                vel(i, j, k, 2) = w_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, 0.0);
 
                 if (activate_pressure) {
-                    gp(i, j, k, 0) = gpx_exact(u0, v0, alpha, beta, A, nu, x, y, 0.0);
-                    gp(i, j, k, 1) = gpy_exact(u0, v0, alpha, beta, A, nu, x, y, 0.0);
-                    gp(i, j, k, 2) = gpz_exact(u0, v0, alpha, beta, A, nu, x, y, 0.0);
+                    gp(i, j, k, 0) = gpx_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, 0.0);
+                    gp(i, j, k, 1) = gpy_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, 0.0);
+                    gp(i, j, k, 2) = gpz_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, 0.0);
                 }
             });
 
@@ -313,7 +336,7 @@ amrex::Real ConvectingTaylorVortex::compute_error(const Field& field)
                     mesh_mapping ? (fac_arr[box_no](i, j, k, 2)) : 1.0;
 
                 const amrex::Real u = fld_bx(i, j, k, comp);
-                const amrex::Real u_exact = f_exact(u0, v0, alpha, beta, A, nu, x, y, time);
+                const amrex::Real u_exact = f_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, time);
                 const amrex::Real cell_vol =
                     dx[0] * fac_x * dx[1] * fac_y * dx[2] * fac_z;
 
@@ -331,12 +354,12 @@ amrex::Real ConvectingTaylorVortex::compute_error(const Field& field)
 void ConvectingTaylorVortex::output_error()
 {
     // TODO: gradp analytical solution has not been adjusted for mesh mapping
-    const amrex::Real u_err = compute_error<UExact>(m_velocity);
-    const amrex::Real v_err = compute_error<VExact>(m_velocity);
-    const amrex::Real w_err = compute_error<WExact>(m_velocity);
-    const amrex::Real gpx_err = compute_error<GpxExact>(m_gradp);
-    const amrex::Real gpy_err = compute_error<GpyExact>(m_gradp);
-    const amrex::Real gpz_err = compute_error<GpzExact>(m_gradp);
+    const amrex::Real u_err = compute_error<UExactFV>(m_velocity);
+    const amrex::Real v_err = compute_error<VExactFV>(m_velocity);
+    const amrex::Real w_err = compute_error<WExactFV>(m_velocity);
+    const amrex::Real gpx_err = compute_error<GpxExactFV>(m_gradp);
+    const amrex::Real gpy_err = compute_error<GpyExactFV>(m_gradp);
+    const amrex::Real gpz_err = compute_error<GpzExactFV>(m_gradp);
 
     if (amrex::ParallelDescriptor::IOProcessor()) {
         std::ofstream f;
