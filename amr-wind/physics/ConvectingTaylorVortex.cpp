@@ -154,11 +154,21 @@ ConvectingTaylorVortex::ConvectingTaylorVortex(const CFDSim& sim)
     }
     if (amrex::ParallelDescriptor::IOProcessor()) {
         std::ofstream f;
+        const int maxlevel = sim.mesh().maxLevel();
         f.open(m_output_fname.c_str());
-        f << std::setw(m_w) << "time" << std::setw(m_w) << "L2_u"
-          << std::setw(m_w) << "L2_v" << std::setw(m_w) << "L2_w"
-          << std::setw(m_w) << "L2_gpx" << std::setw(m_w) << "L2_gpy"
-          << std::setw(m_w) << "L2_gpz" << std::endl;
+        f << std::setw(m_w) << "time";
+        for (int lev = 0; lev < maxlevel + 1; ++lev) {
+            f << std::setw(m_w - 1) << "L2_u_lvl_" << lev
+              << std::setw(m_w - 1) << "L2_v_lvl_" << lev
+              << std::setw(m_w - 1) << "L2_w_lvl_" << lev
+              << std::setw(m_w - 1) << "L2_gpx_lvl_" << lev
+              << std::setw(m_w - 1) << "L2_gpy_lvl_" << lev
+              << std::setw(m_w - 1) << "L2_gpz_lvl_" << lev;
+        }
+        f << std::setw(m_w) << "L2_u_all_lvl" << std::setw(m_w) << "L2_v_all_lvl" 
+          << std::setw(m_w) << "L2_w_all_lvl" << std::setw(m_w) << "L2_gpx_all_lvl" 
+          << std::setw(m_w) << "L2_gpy_all_lvl" << std::setw(m_w) << "L2_gpz_all_lvl";
+        f << std::endl;
         f.close();
     }
 }
@@ -251,9 +261,9 @@ void ConvectingTaylorVortex::initialize_fields(
 }
 
 template <typename T>
-amrex::Real ConvectingTaylorVortex::compute_error(const Field& field)
+amrex::Real ConvectingTaylorVortex::compute_error_squared(int lev, const Field& field)
 {
-    amrex::Real error = 0.0;
+    amrex::Real error_squared = 0.0;
     const amrex::Real time = m_time.new_time();
     const auto u0 = m_u0;
     const auto v0 = m_v0;
@@ -273,7 +283,7 @@ amrex::Real ConvectingTaylorVortex::compute_error(const Field& field)
             : nullptr;
 
     const int nlevels = m_repo.num_active_levels();
-    for (int lev = 0; lev < nlevels; ++lev) {
+    if (lev <= nlevels - 1) {
 
         amrex::iMultiFab level_mask;
         if (lev < nlevels - 1) {
@@ -316,7 +326,7 @@ amrex::Real ConvectingTaylorVortex::compute_error(const Field& field)
             mesh_mapping ? ((*nu_coord_cc)(lev).const_arrays())
                          : amrex::MultiArray4<amrex::Real const>();
 
-        error += amrex::ParReduce(
+        error_squared += amrex::ParReduce(
             amrex::TypeList<amrex::ReduceOpSum>{},
             amrex::TypeList<amrex::Real>{}, fld, amrex::IntVect(0),
             [=] AMREX_GPU_HOST_DEVICE(int box_no, int i, int j, int k)
@@ -336,38 +346,78 @@ amrex::Real ConvectingTaylorVortex::compute_error(const Field& field)
                     mesh_mapping ? (fac_arr[box_no](i, j, k, 2)) : 1.0;
 
                 const amrex::Real u = fld_bx(i, j, k, comp);
-                const amrex::Real u_exact = f_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, time);
+                const amrex::Real u_exact = f_exact(u0, v0, alpha, beta, A, nu, dx[0], dx[1], x, y, 0.0);
                 const amrex::Real cell_vol =
                     dx[0] * fac_x * dx[1] * fac_y * dx[2] * fac_z;
+
+
 
                 return cell_vol * mask_bx(i, j, k) * (u - u_exact) *
                        (u - u_exact);
             });
     }
 
-    amrex::ParallelDescriptor::ReduceRealSum(error);
+    amrex::ParallelDescriptor::ReduceRealSum(error_squared);
 
-    const amrex::Real total_vol = m_mesh.Geom(0).ProbDomain().volume();
-    return std::sqrt(error / total_vol);
+    return error_squared;
 }
 
 void ConvectingTaylorVortex::output_error()
 {
+    const int maxlevel = m_sim.mesh().maxLevel();
+
     // TODO: gradp analytical solution has not been adjusted for mesh mapping
-    const amrex::Real u_err = compute_error<UExactFV>(m_velocity);
-    const amrex::Real v_err = compute_error<VExactFV>(m_velocity);
-    const amrex::Real w_err = compute_error<WExactFV>(m_velocity);
-    const amrex::Real gpx_err = compute_error<GpxExactFV>(m_gradp);
-    const amrex::Real gpy_err = compute_error<GpyExactFV>(m_gradp);
-    const amrex::Real gpz_err = compute_error<GpzExactFV>(m_gradp);
+    amrex::Real u_err_sq_lvl;
+    amrex::Real v_err_sq_lvl;
+    amrex::Real w_err_sq_lvl;
+    amrex::Real gpx_err_sq_lvl;
+    amrex::Real gpy_err_sq_lvl;
+    amrex::Real gpz_err_sq_lvl;
+    amrex::Real u_err_sq_all_lvl(0.0);
+    amrex::Real v_err_sq_all_lvl(0.0);
+    amrex::Real w_err_sq_all_lvl(0.0);
+    amrex::Real gpx_err_sq_all_lvl(0.0);
+    amrex::Real gpy_err_sq_all_lvl(0.0);
+    amrex::Real gpz_err_sq_all_lvl(0.0);
+
+    const amrex::Real total_vol = m_mesh.Geom(0).ProbDomain().volume();
 
     if (amrex::ParallelDescriptor::IOProcessor()) {
         std::ofstream f;
         f.open(m_output_fname.c_str(), std::ios_base::app);
-        f << std::setprecision(12) << std::setw(m_w) << m_time.new_time()
-          << std::setw(m_w) << u_err << std::setw(m_w) << v_err
-          << std::setw(m_w) << w_err << std::setw(m_w) << gpx_err
-          << std::setw(m_w) << gpy_err << std::setw(m_w) << gpz_err
+        f << std::setprecision(12) << std::setw(m_w) << m_time.new_time();
+        f.close();
+    }
+    for (int lev = 0; lev < maxlevel + 1; ++lev) {
+        u_err_sq_lvl = compute_error_squared<UExactFV>(lev,m_velocity);
+        v_err_sq_lvl = compute_error_squared<VExactFV>(lev,m_velocity);
+        w_err_sq_lvl = compute_error_squared<WExactFV>(lev,m_velocity);
+        gpx_err_sq_lvl = compute_error_squared<GpxExactFV>(lev,m_gradp);
+        gpy_err_sq_lvl = compute_error_squared<GpyExactFV>(lev,m_gradp);
+        gpz_err_sq_lvl = compute_error_squared<GpzExactFV>(lev,m_gradp);
+        
+        u_err_sq_all_lvl += u_err_sq_lvl;
+        v_err_sq_all_lvl += v_err_sq_lvl;
+        w_err_sq_all_lvl += w_err_sq_lvl;
+        gpx_err_sq_all_lvl += gpx_err_sq_lvl;
+        gpy_err_sq_all_lvl += gpy_err_sq_lvl;
+        gpz_err_sq_all_lvl += gpz_err_sq_lvl;
+
+        if (amrex::ParallelDescriptor::IOProcessor()) {
+            std::ofstream f;
+            f.open(m_output_fname.c_str(), std::ios_base::app);
+            f << std::setw(m_w) << std::sqrt(u_err_sq_lvl / total_vol) << std::setw(m_w) << std::sqrt(v_err_sq_lvl / total_vol)
+              << std::setw(m_w) << std::sqrt(w_err_sq_lvl / total_vol) << std::setw(m_w) << std::sqrt(gpx_err_sq_lvl / total_vol)
+              << std::setw(m_w) << std::sqrt(gpy_err_sq_lvl / total_vol) << std::setw(m_w) << std::sqrt(gpz_err_sq_lvl / total_vol);
+            f.close();
+        }
+    }
+    if (amrex::ParallelDescriptor::IOProcessor()) {
+        std::ofstream f;
+        f.open(m_output_fname.c_str(), std::ios_base::app);
+        f << std::setw(m_w) << std::sqrt(u_err_sq_all_lvl / total_vol) << std::setw(m_w) << std::sqrt(v_err_sq_all_lvl / total_vol)
+          << std::setw(m_w) << std::sqrt(w_err_sq_all_lvl / total_vol) << std::setw(m_w) << std::sqrt(gpx_err_sq_all_lvl / total_vol)
+          << std::setw(m_w) << std::sqrt(gpy_err_sq_all_lvl / total_vol) << std::setw(m_w) << std::sqrt(gpz_err_sq_all_lvl / total_vol)
           << std::endl;
         f.close();
     }
