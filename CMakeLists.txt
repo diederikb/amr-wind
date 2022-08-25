@@ -24,7 +24,7 @@ option(AMR_WIND_SAVE_GOLDS "Provide a directory in which to save golds during te
 option(AMR_WIND_ENABLE_FPE_TRAP_FOR_TESTS "Enable FPE trapping in tests" ON)
 
 #Options for the executable
-option(AMR_WIND_ENABLE_MPI "Enable MPI" OFF)
+option(AMR_WIND_ENABLE_MPI "Enable MPI" ON)
 option(AMR_WIND_ENABLE_OPENMP "Enable OpenMP" OFF)
 option(AMR_WIND_ENABLE_CUDA "Enable CUDA" OFF)
 option(AMR_WIND_ENABLE_ROCM "Enable ROCm/HIP" OFF)
