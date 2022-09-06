@@ -1,0 +1,14 @@
+<map id="amr_wind::actuator::WingBaseData" name="amr_wind::actuator::WingBaseData">
+<area shape="rect" id="node1" title="Base data representation of a fixed&#45;wing." alt="" coords="1183,237,1331,278"/>
+<area shape="rect" id="node2" href="$structamr__wind_1_1actuator_1_1_component_view.html" title="Slice of actutator data for components (tower, blade, etc)" alt="" coords="871,147,1019,189"/>
+<area shape="rect" id="node3" href="$structamr__wind_1_1utils_1_1_slice.html" title=" " alt="" coords="563,95,724,137"/>
+<area shape="rect" id="node4" href="$structamr__wind_1_1utils_1_1_slice.html" title=" " alt="" coords="118,103,317,129"/>
+<area shape="rect" id="node5" href="$structamr__wind_1_1utils_1_1_slice.html" title=" " alt="" coords="549,30,738,71"/>
+<area shape="rect" id="node7" href="$structamr__wind_1_1utils_1_1_slice.html" title=" " alt="" coords="549,198,737,239"/>
+<area shape="rect" id="node6" href="$structamr__wind_1_1vs_1_1_tensor_t.html" title="Tensor in 3D vector space." alt="" coords="115,12,320,39"/>
+<area shape="rect" id="node8" href="$structamr__wind_1_1vs_1_1_vector_t.html" title="Vector in 3D space." alt="" coords="115,208,319,235"/>
+<area shape="rect" id="node9" title=" " alt="" coords="5,267,44,293"/>
+<area shape="rect" id="node12" title="STL class." alt="" coords="139,325,296,352"/>
+<area shape="rect" id="node10" title=" " alt="" coords="540,263,747,305"/>
+<area shape="rect" id="node11" href="$structamr__wind_1_1actuator_1_1_f_l_l_c_data.html" title=" " alt="" coords="143,259,291,301"/>
+</map>
