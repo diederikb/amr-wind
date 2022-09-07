@@ -30,7 +30,7 @@ add_subdirectory(transport_models)
 add_subdirectory(turbulence)
 add_subdirectory(physics)
 add_subdirectory(overset)
-add_subdirectory(immersed_boundary)
+#add_subdirectory(immersed_boundary)
 add_subdirectory(mesh_mapping_models)
 
 include(AMReXBuildInfo)
